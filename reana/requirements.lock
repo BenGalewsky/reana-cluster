@@ -1,0 +1,9 @@
+dependencies:
+- name: nfs-server-provisioner
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 0.3.0
+- name: postgresql
+  repository: https://kubernetes-charts.storage.googleapis.com
+  version: 5.3.9
+digest: sha256:a3e1311b0e7602b3866e307a72ec46147f38dc76166328feed82c3c81640ee9d
+generated: 2019-06-24T14:50:58.531827-07:00

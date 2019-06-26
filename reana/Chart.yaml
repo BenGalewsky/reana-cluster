@@ -1,0 +1,15 @@
+apiVersion: v1
+description: Reana - Reproducible research data analysis platform
+name: reana
+version: 0.1.0
+appVersion: 0.5.0
+icon: https://github.com/reanahub/reana/raw/master/docs/_static/logo-reana.png
+home: http://www.reana.io
+sources:
+  - https://github.com/reanahub/reana-cluster
+maintainers:
+  - name: bengalewsky
+    email: bengal1@illinois.edu
+
+
+

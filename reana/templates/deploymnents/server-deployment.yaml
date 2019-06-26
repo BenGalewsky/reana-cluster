@@ -1,0 +1,69 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: server
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: server
+    spec:
+      containers:
+      - name: server
+        image: {{ .Values.server.image }}:{{ .Values.server.tag }}
+        {{ if .Values.debug }}
+        command: ["/bin/sh","-c"]
+        args: ["set -e; flask db init; flask users create_default info@reana.io; flask run --host=0.0.0.0"]
+        tty: true
+        stdin: true
+        {{ end }}
+        imagePullPolicy: {{ .Values.server.pullPolicy }}
+        volumeMounts:
+        - mountPath: {{ .Values.shared_volume_path }}
+          name: reana-shared-volume
+        {{- range .Values.server.mountpoints}}
+        - mountPath: {{ .path }}
+          name: {{ .name }}
+        {{- end }}
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        {{- range .Values.server.env}}
+        - name: {{ .key }}
+          value: {{ .value | quote }}
+        {{- end }}
+      - name: scheduler
+        image: {{ .Values.server.image }}:{{ .Values.server.tag }}
+        command: ["flask", "start-scheduler"]
+        imagePullPolicy: {{ .Values.server.pullPolicy }}
+        volumeMounts:
+        - mountPath: {{ .Values.shared_volume_path }}
+          name: reana-shared-volume
+        {{- range .Values.server.mountpoints}}
+        - mountPath: {{ .path }}
+          name: {{ .name }}
+        {{- end }}
+        env:
+        {{- range .Values.server.env}}
+        - name: {{ .key }}
+          value: {{ .value | quote }}
+        {{- end }}
+
+      volumes:
+      - name: reana-shared-volume
+        {{- if .Values.storage.persisitent }}
+        persistentVolumeClaim:
+          claimName: manila-cephfs-pvc
+          readOnly: false
+        {{- else }}
+        hostPath:
+          path: {{ .Values.storage.root_path }}
+        {{- end }}
+      {{- range .Values.server.mountpoints}}
+      - name: {{ .name }}
+        type: {{ .type }}
+        path: {{ .path }}
+      {{- end }}

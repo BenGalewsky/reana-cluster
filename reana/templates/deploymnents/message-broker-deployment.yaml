@@ -1,0 +1,37 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: message-broker
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: message-broker
+    spec:
+      containers:
+      - name: message-broker
+        image: {{ .Values.message_broker.image }}:{{ .Values.message_broker.tag }}
+        imagePullPolicy: {{ .Values.message_broker.pullPolicy }}
+        volumeMounts:
+        {{- range .Values.message_broker.mountpoints}}
+        - mountPath: {{ .path }}
+          name: {{ .name }}
+        {{- end }}
+        ports:
+        - containerPort: 5672
+          name: tcp
+        - containerPort: 15672
+          name: management
+        env:
+        {{- range .Values.message_broker.env}}
+        - name: {{ .key }}
+          value: {{ .value | quote }}
+        {{- end }}
+      volumes:
+      {{- range .Values.message_broker.mountpoints}}
+      - name: {{ .name }}
+        type: {{ .type }}
+        path: {{ .path }}
+      {{- end }}

@@ -1,0 +1,71 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: workflow-controller
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: workflow-controller
+    spec:
+      containers:
+      - name: rest-api-server
+        image: {{ .Values.workflow_controller.image }}:{{ .Values.workflow_controller.tag }}
+        {{ if .Values.debug }}
+        command: ["/bin/sh","-c"]
+        args: ["flask run --host=0.0.0.0"]
+        tty: true
+        stdin: true
+        {{ end }}
+        imagePullPolicy: {{ .Values.workflow_controller.pullPolicy }}
+        volumeMounts:
+        - mountPath: {{ .Values.shared_volume_path }}
+          name: reana-shared-volume
+        {{- range .Values.workflow_controller.mountpoints}}
+        - mountPath: {{ .path }}
+          name: {{ .name }}
+        {{- end }}
+        ports:
+        - containerPort: 5000
+          name: http
+        env:
+        - name: REANA_DEPLOYMENT_TYPE
+          value: {{ .Values.deployment }}
+        - name: RABBIT_MQ_URL
+          value: "message-broker.{{ .Release.Namespace }}.svc.cluster.local"
+        {{- if .Values.use_cephfs }}
+        - name: REANA_STORAGE_BACKEND
+          value: "cephfs"
+        {{- end }}
+        {{- range .Values.message_broker.env}}
+        - name: {{ .key }}
+          value: {{ .value | quote }}
+        {{- end }}
+      - name: job-status-consumer
+        image: {{ .Values.workflow_controller.image }}:{{ .Values.workflow_controller.tag }}
+        command: ["flask", "consume-job-queue"]
+        imagePullPolicy: {{ .Values.workflow_controller.pullPolicy }}
+        volumeMounts:
+        - mountPath: {{ .Values.shared_volume_path }}
+          name: reana-shared-volume
+        {{- range .Values.workflow_controller.mountpoints}}
+        - mountPath: {{ .path }}
+          name: {{ .name }}
+        {{- end }}
+      volumes:
+      - name: reana-shared-volume
+        {{- if .Values.use_cephfs }}
+        persistentVolumeClaim:
+          claimName: manila-cephfs-pvc
+          readOnly: false
+        {{- else }}
+        hostPath:
+          path: {{ .Values.storage.root_path}}
+        {{- end }}
+      {{- range .Values.workflow_controller.mountpoints}}
+      - name: {{ .name }}
+        type: {{ .type }}
+        path: {{ .path }}
+      {{- end }}

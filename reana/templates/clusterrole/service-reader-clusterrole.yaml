@@ -1,0 +1,20 @@
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: service-reader
+rules:
+- apiGroups: [""] # "" indicates the core API group
+  resources: ["nodes", "nodes/status", "pods", "pods/log", "secrets", "persistentvolumeclaims"]
+  verbs: ["get", "list", "create", "update"]
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["*"]
+- apiGroups: ["batch", "extensions"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# Interactive web notebooks permissions
+- apiGroups: ["", "extensions"]
+  resources: ["deployments", "services", "ingresses"]
+  verbs: ["get", "create", "delete"]
